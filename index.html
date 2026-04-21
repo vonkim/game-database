@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>한국 게임사 28개사 DB (JSON)</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Noto Sans KR',monospace;background:#0d1117;color:#e6edf3;padding:20px;min-height:100vh;}
+h1{font-size:1.3rem;font-weight:700;margin-bottom:6px;color:#58a6ff;}
+.meta{font-size:.75rem;color:#8b949e;margin-bottom:16px;}
+.meta a{color:#58a6ff;text-decoration:none;}
+.meta a:hover{text-decoration:underline;}
+.info{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:.78rem;line-height:1.7;color:#8b949e;}
+.info b{color:#e6edf3;}
+.info code{background:#1f2937;padding:1px 5px;border-radius:3px;font-size:.72rem;color:#79c0ff;}
+.search-bar{display:flex;gap:8px;margin-bottom:16px;}
+.search-bar input{flex:1;padding:8px 14px;border-radius:6px;border:1px solid #30363d;background:#0d1117;color:#e6edf3;font-size:.8rem;}
+.search-bar input:focus{outline:none;border-color:#58a6ff;}
+.search-bar button{padding:8px 16px;border-radius:6px;border:none;background:#238636;color:#fff;font-weight:600;cursor:pointer;font-size:.78rem;}
+.search-bar button:hover{background:#2ea043;}
+.company-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.co-chip{padding:4px 10px;border-radius:14px;font-size:.7rem;font-weight:600;cursor:pointer;border:1px solid #30363d;background:#161b22;color:#8b949e;transition:.15s;}
+.co-chip:hover,.co-chip.active{background:#1f6feb;color:#fff;border-color:#1f6feb;}
+#jsonView{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:16px;overflow-x:auto;font-family:'Cascadia Code','Fira Code',monospace;font-size:.72rem;line-height:1.6;max-height:80vh;overflow-y:auto;white-space:pre-wrap;word-break:break-all;}
+.json-key{color:#79c0ff;}
+.json-str{color:#a5d6ff;}
+.json-num{color:#56d364;}
+.json-bool{color:#ff7b72;}
+.json-null{color:#8b949e;}
+.raw-link{display:inline-block;margin-top:10px;font-size:.72rem;color:#58a6ff;text-decoration:none;}
+.raw-link:hover{text-decoration:underline;}
+</style>
+</head>
+<body>
+<h1>한국 게임사 28개사 DB</h1>
+<p class="meta">
+  v5 · 2026-04-21 · <a href="data.json" download>JSON 다운로드</a> ·
+  <a href="https://raw.githubusercontent.com/vonkim/game-database/master/data.json" target="_blank">Raw JSON URL</a> ·
+  <a href="https://vonkim.github.io/game-dashboard/" target="_blank">대시보드 보기</a>
+</p>
+<div class="info">
+  <b>데이터 개요</b><br>
+  대상: 한국 게임사 <b>28개</b> (넥슨·그라비티 해외상장 포함)<br>
+  기간: 2022Q1~2025Q4 (16분기) · 연결기준<br>
+  <b>분기별 재무 5개 항목</b>: <code>매출액</code> <code>영업이익</code> <code>인건비</code> <code>광고선전비</code> <code>현금성자산</code> (단위: 원)<br>
+  <b>기타</b>: <code>신작정보</code> <code>인수투자</code>(130건) <code>관련뉴스</code>(113건) <code>조직구조</code><br>
+  <b>AI 학습용</b>: Raw JSON URL을 LLM에 제공하면 28개사 재무/신작/M&A 데이터 분석 가능
+</div>
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="회사명 또는 키워드 검색 (예: NHN, 매출액, 인수투자...)">
+  <button onclick="doSearch()">검색</button>
+  <button onclick="showAll()" style="background:#30363d;">전체</button>
+</div>
+<div class="company-list" id="companyList"></div>
+<div id="jsonView">로딩 중...</div>
+<a class="raw-link" href="https://raw.githubusercontent.com/vonkim/game-database/master/data.json" target="_blank">→ Raw JSON (AI 학습/API용)</a>
+
+<script>
+let DB=null;const companies=[];
+fetch('data.json').then(r=>r.json()).then(data=>{
+  DB=data;
+  Object.keys(data).filter(k=>k!=='_메타').forEach(co=>companies.push(co));
+  const list=document.getElementById('companyList');
+  companies.forEach(co=>{
+    const chip=document.createElement('span');
+    chip.className='co-chip';chip.textContent=co;
+    chip.onclick=()=>showCompany(co);list.appendChild(chip);
+  });
+  showAll();
+});
+function syntaxHighlight(json){
+  if(typeof json!=='string')json=JSON.stringify(json,null,2);
+  json=json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,function(m){
+    let c='json-num';
+    if(/^"/.test(m)){c=/:$/.test(m)?'json-key':'json-str';}
+    else if(/true|false/.test(m))c='json-bool';
+    else if(/null/.test(m))c='json-null';
+    return '<span class="'+c+'">'+m+'</span>';
+  });
+}
+function showAll(){document.getElementById('jsonView').innerHTML=syntaxHighlight(DB);document.querySelectorAll('.co-chip').forEach(c=>c.classList.remove('active'));}
+function showCompany(co){
+  const s={'_메타':DB['_메타'],[co]:DB[co]};
+  document.getElementById('jsonView').innerHTML=syntaxHighlight(s);
+  document.querySelectorAll('.co-chip').forEach(c=>c.classList.toggle('active',c.textContent===co));
+}
+function doSearch(){
+  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  if(!q){showAll();return;}
+  const r={};
+  for(const co of companies){if(JSON.stringify(DB[co]).toLowerCase().includes(q)||co.toLowerCase().includes(q))r[co]=DB[co];}
+  document.getElementById('jsonView').innerHTML=Object.keys(r).length?syntaxHighlight(r):'<span class="json-null">검색 결과 없음</span>';
+}
+document.getElementById('searchInput').addEventListener('keypress',e=>{if(e.key==='Enter')doSearch();});
+</script>
+</body>
+</html>
